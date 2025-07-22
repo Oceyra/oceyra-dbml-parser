@@ -30,12 +30,20 @@ jobs:
       - name: Run unit tests with report
         run: dotnet test $path_to_test_project --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --results-directory "TestResults"
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v3
-        if: success() || failure()
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        if: success() || failure()          # run this step even if previous step failed
         with:
-          name: TestResults
-          path: TestResults/TestResults.trx
+          name: NUnit Tests                 # Name of the check run which will be created
+          path: TestResults/TestResults.trx # Path to test results
+          reporter: dotnet-trx              # Format of test results
+
+      #- name: Upload test results
+      #  uses: actions/upload-artifact@v3
+      #  if: success() || failure()
+      #  with:
+      #    name: TestResults
+      #    path: TestResults/TestResults.trx
 
       #- name: Push generated package to Gitea registry
       #  run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
