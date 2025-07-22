@@ -28,14 +28,14 @@ jobs:
         run: dotnet build $path_to_test_project --configuration Release
 
       - name: Run unit tests with report
-        run: dotnet test $path_to_test_project --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"
+        run: dotnet test $path_to_test_project --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx" --results-directory "TestResults"
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: TestResults
-          path: ./src/Test/TestResults/TestResults.trx
+          path: TestResults/TestResults.trx
 
       #- name: Push generated package to Gitea registry
       #  run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
