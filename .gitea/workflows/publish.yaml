@@ -21,7 +21,7 @@ jobs:
           dotnet-version: 8.x
 
       - name: Restore dependencies
-        run: dotnet restore ./src/$project.slnx
+        run: dotnet restore $path_to_project
 
       - name: Build solution and generate NuGet package
         run: dotnet build $path_to_project --configuration Release
