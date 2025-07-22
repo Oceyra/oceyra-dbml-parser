@@ -7,18 +7,16 @@ namespace Oceyra.Dbml.Parser;
 
 public class DbmlParser
 {
-    private static readonly Regex TableHeaderRegex = new Regex(@"Table\s+(""[^""]+""|\w+)(?:\s+as\s+(""[^""]+""|\w+))?\s*{", RegexOptions.IgnoreCase);
-
-    private static readonly Regex TableRegex = new Regex(@"Table\s+(""[^""]+""|\w+)(?:\s+as\s+(""[^""]+""|\w+))?\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-    private static readonly Regex FieldRegex = new Regex(@"(""[^""]+""|\w+)\s+(\w+(?:\([^)]*\))?(?:\[\])?)((?:\s*\[[^\]]*\])*)\s*(?://.*)?", RegexOptions.Multiline);
-    private static readonly Regex RefRegex = new Regex(@"Ref:\s*(""[^""]+""|\w+)\.(""[^""]+""|\w+)\s*([<>-]+)\s*(""[^""]+""|\w+)\.(""[^""]+""|\w+)", RegexOptions.IgnoreCase);
-    private static readonly Regex EnumRegex = new Regex(@"enum\s+(""[^""]+""|\w+)\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-    private static readonly Regex ProjectRegex = new Regex(@"Project\s+(""[^""]+""|\w+)\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-    private static readonly Regex IndexBlockRegex = new Regex(@"Indexes\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
-    private static readonly Regex IndexEntryRegex = new Regex(@"\(([^)]+)\)\s*\[([^\]]*)\]", RegexOptions.Multiline);
+    private static readonly Regex TableHeaderRegex = new (@"Table\s+(""[^""]+""|\w+)(?:\s+as\s+(""[^""]+""|\w+))?\s*{", RegexOptions.IgnoreCase);
+    private static readonly Regex FieldRegex = new (@"(""[^""]+""|\w+)\s+(\w+(?:\([^)]*\))?(?:\[\])?)((?:\s*\[[^\]]*\])*)\s*(?://.*)?", RegexOptions.Multiline);
+    private static readonly Regex RefRegex = new (@"Ref:\s*(""[^""]+""|\w+)\.(""[^""]+""|\w+)\s*([<>-]+)\s*(""[^""]+""|\w+)\.(""[^""]+""|\w+)", RegexOptions.IgnoreCase);
+    private static readonly Regex EnumRegex = new (@"enum\s+(""[^""]+""|\w+)\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex ProjectRegex = new (@"Project\s+(""[^""]+""|\w+)\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex IndexBlockRegex = new (@"Indexes\s*{([^}]*)}", RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex IndexEntryRegex = new (@"\(([^)]+)\)\s*\[([^\]]*)\]", RegexOptions.Multiline);
 
 
-    private readonly List<RelationshipModel> _inlineRelationships = new();
+    private readonly List<RelationshipModel> _inlineRelationships = [];
 
     public DatabaseModel Parse(string dbmlContent)
     {
@@ -43,7 +41,7 @@ public class DbmlParser
         return database;
     }
 
-    private string RemoveComments(string content)
+    private static string RemoveComments(string content)
     {
         // Remove single-line comments
         content = Regex.Replace(content, @"//.*$", "", RegexOptions.Multiline);
@@ -54,7 +52,7 @@ public class DbmlParser
         return content;
     }
 
-    private void ParseProjectInfo(string content, DatabaseModel database)
+    private static void ParseProjectInfo(string content, DatabaseModel database)
     {
         var projectMatch = ProjectRegex.Match(content);
         if (projectMatch.Success)
@@ -79,11 +77,11 @@ public class DbmlParser
             var enumModel = new EnumModel
             {
                 Name = Unquote(match.Groups[1].Value),
-                Values = new List<string>()
+                Values =[]
             };
 
             var enumBody = Unquote(match.Groups[2].Value);
-            var values = enumBody.Split(new[] { '\n', ',' }, StringSplitOptions.RemoveEmptyEntries)
+            var values = enumBody.Split([ '\n', ',' ], StringSplitOptions.RemoveEmptyEntries)
                                  .Select(v => v.Trim())
                                  .Where(v => !string.IsNullOrEmpty(v))
                                  .ToList();
@@ -120,7 +118,7 @@ public class DbmlParser
             {
                 Name = Unquote(match.Groups[1].Value),
                 ClassName = match.Groups[2].Success ? Unquote(match.Groups[2].Value) : Unquote(match.Groups[1].Value),
-                Columns = new List<ColumnModel>()
+                Columns = []
             };
 
             ParseTableFields(tableBody, table);
@@ -130,7 +128,7 @@ public class DbmlParser
         }
     }
 
-    private int FindMatchingBrace(string content, int startIndex)
+    private static int FindMatchingBrace(string content, int startIndex)
     {
         int depth = 0;
         for (int i = startIndex; i < content.Length; i++)
@@ -282,7 +280,7 @@ public class DbmlParser
         }
     }
 
-    private RelationshipType ParseRelationshipType(string symbol)
+    private static RelationshipType ParseRelationshipType(string symbol)
     {
         return symbol.Trim() switch
         {
@@ -294,7 +292,7 @@ public class DbmlParser
         };
     }
 
-    private string MapDatabaseType(string dbType)
+    private static string MapDatabaseType(string dbType)
     {
         return dbType.ToLower() switch
         {
@@ -305,7 +303,7 @@ public class DbmlParser
             _ => "Microsoft.EntityFrameworkCore.SqlServer"
         };
     }
-    private string Unquote(string value) =>
+    private static string Unquote(string value) =>
     value.Trim().Trim('"');
 
 }

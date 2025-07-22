@@ -3,5 +3,5 @@
 public class EnumModel
 {
     public string Name { get; set; } = "";
-    public List<string> Values { get; set; } = new();
+    public List<string> Values { get; set; } = [];
 }
