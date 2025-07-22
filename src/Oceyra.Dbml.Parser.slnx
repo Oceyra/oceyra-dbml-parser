@@ -1,0 +1,10 @@
+
+<Solution>
+  <Folder Name="/Common Files/">
+    <File Path="Common Files/global.json" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Oceyra.Dbml.Parser.Tests/Oceyra.Dbml.Parser.Tests.csproj" />
+  </Folder>
+  <Project Path="Oceyra.Dbml.Parser\Oceyra.Dbml.Parser.csproj" />
+</Solution>

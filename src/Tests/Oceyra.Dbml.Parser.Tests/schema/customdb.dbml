@@ -1,0 +1,40 @@
+Table "projects" {
+  "project_id" varchar(500) [pk, not null] [ref: < "task_results"."project_id"]
+  "project_name" varchar(500) [not null]
+  "requirements" varchar(500)
+  "task_plan" varchar(500)
+  "status" varchar(500) [not null]
+  "created_at" timestamp [not null]
+  "updated_at" timestamp
+}
+
+Table "task_results" {
+  "project_id" varchar(500) [not null]
+  "task_id" varchar(500) [not null] [ref: < "task_dependencies"."dependency_task_id"]
+  "name" varchar(500) [not null]
+  "description" varchar(500)
+  "agent_type" varchar(500) [not null]
+  "priority" varchar(500)
+  "estimated_hours" bigint
+  "result_data" varchar(500)
+  "status" varchar(500) [not null]
+  "created_at" timestamp [not null]
+  "updated_at" timestamp
+
+  Indexes {
+    (task_id, agent_type, project_id) [unique, name: "public_idx_task_results_task_id_agent_type"]
+  }
+}
+
+Table "task_dependencies" {
+  "id" bigint [pk, not null]
+  "project_id" varchar(500) [not null]
+  "task_id" varchar(500) [not null]
+  "dependency_task_id" varchar(500) [not null]
+  "created_at" timestamp
+  "updated_at" timestamp
+
+  Indexes {
+    (task_id, dependency_task_id, project_id) [unique, name: "public_index_1"]
+  }
+}

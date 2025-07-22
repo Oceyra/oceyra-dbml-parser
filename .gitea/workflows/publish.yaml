@@ -1,0 +1,35 @@
+name: publish to nuget
+on:
+  push:
+    branches:
+      - main # Default release branch, may also be named 'master' or 'develop'
+
+env:
+  path_to_project: src/Oceyra.Dbml.Parser/Oceyra.Dbml.Parser.csproj
+
+jobs:
+  publish:
+    name: Build, Pack & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Build solution and generate NuGet package
+        run: dotnet build $path_to_project --configuration Release
+
+      - name: Run unit tests with report
+        run: dotnet test $path_to_project --configuration Release --no-build --logger "trx;LogFileName=TestResults.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: ./src/Test/TestResults/TestResults.trx
+
+      - name: Push generated package to Gitea registry
+        run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
