@@ -5,6 +5,7 @@ on:
       - main # Default release branch, may also be named 'master' or 'develop'
 
 env:
+  project: Oceyra.Dbml.Parser
   path_to_project: src/Oceyra.Dbml.Parser/Oceyra.Dbml.Parser.csproj
 
 jobs:
@@ -18,6 +19,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.x
+
+      - name: Restore dependencies
+        run: dotnet restore ./src/$project.slnx
 
       - name: Build solution and generate NuGet package
         run: dotnet build $path_to_project --configuration Release
