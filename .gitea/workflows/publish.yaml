@@ -32,6 +32,7 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
+        if: success() || failure()
         with:
           name: TestResults
           path: ./src/Test/TestResults/TestResults.trx
