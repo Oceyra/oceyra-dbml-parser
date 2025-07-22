@@ -1,15 +1,33 @@
-# Oceyra Generator Test Helper
-The goal of this project is to have a permanent route, for ESP devices to fetch a controlled version of their firmware. This way, you can update a single device, or all at once
+# Oceyra DBML Parser
+This project is used to parse a DBML from DbDiagram or ChartDb and return the model of the database
 
-[![Build status](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-core-generator-tests-helper/actions/workflows/publish.yaml/badge.svg?branch=main&event=push)](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-core-generator-tests-helper/actions/workflows/publish.yaml?query=branch%3Amain+event%3Apush)
+[![Build status](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser/actions/workflows/publish.yaml/badge.svg?branch=main&event=push)](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser/actions/workflows/publish.yaml?query=branch%3Amain+event%3Apush)
 
 ## Usage Sample
 ```c#
-var result = SourceGeneratorVerifier.CompileAndTest<ConstructorGenerator>(source);
+var dbmlContent = @"
+Project project_name {
+    database_type: 'PostgreSQL'
+    Note: 'Description of the project'
+}
 
-result
-    .ShouldHaveNoErrors()
-    .ShouldExecuteWithin(TimeSpan.FromMilliseconds(1000))
-    .ShouldHaveGeneratorTimeWithin<ConstructorGenerator>(TimeSpan.FromMilliseconds(100))
-    .ShouldGenerateFiles(1);
+Table users {
+    id integer
+    username varchar
+    role varchar
+    created_at timestamp
+}
+
+Table posts {
+    id integer [primary key]
+    title varchar
+    body text [note: 'Content of the post']
+    user_id integer
+    created_at timestamp
+}
+
+Ref: posts.user_id > users.id // many-to-one";
+
+var parser = DbmlParser();
+var dbModel = parser.Parse(dbmlContent);
 ```
