@@ -2,6 +2,7 @@
 
 public class EnumModel
 {
-    public string Name { get; set; } = "";
-    public List<string> Values { get; set; } = [];
+    public string Schema { get; set; } = "public";
+    public string? Name { get; set; }
+    public List<EnumValueModel> Values { get; set; } = [];
 }

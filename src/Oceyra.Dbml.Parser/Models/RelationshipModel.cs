@@ -2,9 +2,11 @@
 
 public class RelationshipModel
 {
-    public string FromTable { get; set; } = "";
-    public string FromColumn { get; set; } = "";
-    public string ToTable { get; set; } = "";
-    public string ToColumn { get; set; } = "";
-    public RelationshipType RelationshipType { get; set; }
+    public string? Name { get; set; }
+    public string? LeftTable { get; set; }
+    public string? LeftColumn { get; set; }
+    public string? RightTable { get; set; }
+    public string? RightColumn { get; set; }
+    public RelationshipType RelationshipType { get; set; } // <, >, -, <>
+    public Dictionary<string, string> Settings { get; set; } = [];
 }

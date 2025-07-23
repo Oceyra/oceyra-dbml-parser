@@ -6,6 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <PackageId>Oceyra.Dbml.Parser</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Pier-Luc Duchaine</Authors>
+    <Company>Oceyra</Company>
+    <Product>Oceyra Dbml Parser</Product>
+    <Description>Parser for DBML format, to return the database model.</Description>
   </PropertyGroup>
 
   <ItemGroup>

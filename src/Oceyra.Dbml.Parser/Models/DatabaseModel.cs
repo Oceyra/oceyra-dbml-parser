@@ -2,9 +2,11 @@
 
 public class DatabaseModel
 {
-    public string Name { get; set; } = "";
-    public string Provider { get; set; } = "Microsoft.EntityFrameworkCore.SqlServer";
+    public ProjectModel? Project { get; set; }
     public List<TableModel> Tables { get; set; } = [];
-    public List<RelationshipModel> Relationships { get; set; } = [];
     public List<EnumModel> Enums { get; set; } = [];
+    public List<RelationshipModel> Relationships { get; set; } = [];
+    public List<TableGroupModel> TableGroups { get; set; } = [];
+    public List<TablePartialModel> TablePartials { get; set; } = [];
+    public List<StickyNoteModel> StickyNotes { get; set; } = [];
 }
