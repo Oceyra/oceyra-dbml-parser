@@ -43,6 +43,7 @@ jobs:
         if: ${{ !cancelled() }} 
         with:
           name: TestResults
+          path: TestResults/TestResults.trx # Path to test results
 
   publish:
     name: Pack & Publish
