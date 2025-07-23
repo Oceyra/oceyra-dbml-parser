@@ -71,9 +71,14 @@ public static partial class DbmlParser
         document.Relationships = ParseRelationships(cleanContent, aliasToTableName);
 
         document.Relationships.AddRange(document.Tables
-            .SelectMany(t => t.Columns)
-            .Where(c => c.InlineRef != null)
-            .Select(c => c.InlineRef!));
+            .SelectMany(t => t.Columns
+                .Where(c => c.InlineRef != null)
+                .Select(c => { 
+                    var relationship = c.InlineRef!;
+                    relationship.LeftTable = t.Name!;
+                    relationship.LeftColumn = c.Name!;
+                    return relationship;
+                })));
 
         // Parse table groups
         document.TableGroups = ParseTableGroups(cleanContent);
@@ -507,7 +512,8 @@ public static partial class DbmlParser
                     {
                         column.InlineRef = new RelationshipModel
                         {
-                            RelationshipType = ParseRelationshipType(refMatch.Groups["relation"].Value)
+                            RelationshipType = ParseRelationshipType(refMatch.Groups["relation"].Value),
+                            LeftColumn = column.Name // Default to current column's name
                         };
 
                         var targetParts = refMatch.Groups["target"].Value.Split('.');

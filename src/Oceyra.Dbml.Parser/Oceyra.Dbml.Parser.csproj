@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <PackageId>Oceyra.Dbml.Parser</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>Pier-Luc Duchaine</Authors>
     <Company>Oceyra</Company>
     <Product>Oceyra Dbml Parser</Product>
