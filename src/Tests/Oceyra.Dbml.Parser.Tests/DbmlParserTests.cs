@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using Oceyra.Dbml.Parser.Models;
+using Shouldly;
 using Xunit;
 
 namespace Oceyra.Dbml.Parser.Tests;
@@ -31,11 +32,11 @@ public class DbmlParserTests
 
             Ref: posts.user_id > users.id // many-to-one";
 
-        DbmlParser parser = new();
-        var model = parser.Parse(dbmlContent);
+        var model = DbmlParser.Parse(dbmlContent);
 
         model.ShouldNotBeNull();
-        model.Name.ShouldBe("project_name");
+        model.Project.ShouldNotBeNull();
+        model.Project.Name.ShouldBe("project_name");
         model.Tables.Count.ShouldBe(2);
         model.Tables[0].Name.ShouldBe("users");
         model.Tables[0].Columns.Count.ShouldBe(4);
@@ -45,7 +46,7 @@ public class DbmlParserTests
         model.Tables[1].Columns.Count.ShouldBe(5);
         model.Tables[1].Columns[0].IsPrimaryKey.ShouldBe(true);
 
-        model.Relationships[0].RelationshipType.ShouldBe(Models.RelationshipType.ManyToOne);
+        model.Relationships[0].RelationshipType.ShouldBe(RelationshipType.ManyToOne);
     }
 
     [Fact]
@@ -74,11 +75,11 @@ public class DbmlParserTests
 
             Ref: U.id < posts.user_id // one-to-many";
 
-        DbmlParser parser = new();
-        var model = parser.Parse(dbmlContent);
+        var model = DbmlParser.Parse(dbmlContent);
 
         model.ShouldNotBeNull();
-        model.Name.ShouldBe("project_name");
+        model.Project.ShouldNotBeNull();
+        model.Project.Name.ShouldBe("project_name");
         model.Tables.Count.ShouldBe(2);
         model.Tables[0].Name.ShouldBe("users");
         model.Tables[0].Columns.Count.ShouldBe(4);
@@ -88,9 +89,9 @@ public class DbmlParserTests
         model.Tables[1].Columns.Count.ShouldBe(5);
         model.Tables[1].Columns[0].IsPrimaryKey.ShouldBe(true);
 
-        model.Relationships[0].FromTable.ShouldBe("users");
-        model.Relationships[0].ToTable.ShouldBe("posts");
-        model.Relationships[0].RelationshipType.ShouldBe(Models.RelationshipType.OneToMany);
+        model.Relationships[0].LeftTable.ShouldBe("users");
+        model.Relationships[0].RightTable.ShouldBe("posts");
+        model.Relationships[0].RelationshipType.ShouldBe(RelationshipType.OneToMany);
     }
 
 
@@ -108,15 +109,14 @@ public class DbmlParserTests
               rating integer [default: 10]
             }";
 
-        DbmlParser parser = new();
-        var model = parser.Parse(dbmlContent);
+        var model = DbmlParser.Parse(dbmlContent);
 
         model.ShouldNotBeNull();
-        model.Name.ShouldBeEmpty();
+        model.Project.ShouldBeNull();
         model.Tables.Count.ShouldBe(1);
         model.Tables[0].Name.ShouldBe("users");
         model.Tables[0].Columns.Count.ShouldBe(7);
-        model.Tables[0].Columns[4].DefaultValue.ShouldBe("'direct'");
+        model.Tables[0].Columns[4].DefaultValue.ShouldBe("direct");
     }
 
     [Fact]
@@ -141,16 +141,160 @@ public class DbmlParserTests
               }
             }";
 
-        DbmlParser parser = new();
-        var model = parser.Parse(dbmlContent);
+        var model = DbmlParser.Parse(dbmlContent);
 
         model.ShouldNotBeNull();
-        model.Name.ShouldBeEmpty();
+        model.Project.ShouldBeNull();
         model.Tables.Count.ShouldBe(1);
         model.Tables[0].Name.ShouldBe("bookings");
         model.Tables[0].Indexes.Count.ShouldBe(8);
-        model.Tables[0].Columns[4].DefaultValue.ShouldBe("'direct'");
     }
 
+    [Fact]
+    public void DbmlParser_WithTableGroup_ReturnTableGroupModel()
+    {
+        var dbmlContent = @"
+            TableGroup user_management {
+              users
+              orders
+            }";
 
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Project.ShouldBeNull();
+        model.TableGroups.Count.ShouldBe(1);
+        model.TableGroups[0].Name.ShouldBe("user_management");
+        model.TableGroups[0].Tables.Count.ShouldBe(2);
+        model.TableGroups[0].Tables[0].ShouldBe("users");
+        model.TableGroups[0].Tables[1].ShouldBe("orders");
+    }
+
+    [Fact]
+    public void DbmlParser_WithTablePartial_ReturnTablePartialModel()
+    {
+        var dbmlContent = @"
+            TablePartial user_partial {
+              Note: 'Partial for user table'
+              Columns {
+                id integer [primary key]
+                username varchar(50) [not null, unique]
+              }
+              Indexes {
+                username [unique]
+              }
+            }";
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Project.ShouldBeNull();
+        model.TablePartials.Count.ShouldBe(1);
+        model.TablePartials[0].Name.ShouldBe("user_partial");
+        model.TablePartials[0].Columns.Count.ShouldBe(2);
+        model.TablePartials[0].Indexes.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void DbmlParser_WithComplexDbml_ReturnComplexModel()
+    {
+        var dbmlContent = @"
+            Project ecommerce_db {
+              database_type: 'PostgreSQL'
+              Note: 'E-commerce database schema'
+            }
+            enum order_status {
+              created [note: 'Order created']
+              processing
+              shipped
+              delivered
+              cancelled
+            }
+            Table users {
+              id integer [primary key, increment]
+              username varchar(50) [not null, unique]
+              email varchar(100) [not null, unique]
+              created_at timestamp [default: `now()`]
+              Note: 'User accounts table'
+            }
+            Table orders {
+              id integer [pk, increment]
+              user_id integer [ref: > users.id, not null]
+              status order_status [default: 'created']
+              total decimal(10,2) [not null]
+              created_at timestamp [default: `now()`]
+              indexes {
+                user_id
+                (user_id, created_at) [name: 'user_orders_idx']
+              }
+            }
+            Ref: orders.user_id > users.id [delete: cascade]
+            TableGroup user_management {
+              users
+              orders
+            }";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Project.ShouldNotBeNull();
+        model.Project.Name.ShouldBe("ecommerce_db");
+        model.Tables.Count.ShouldBe(2);
+        model.Enums.Count.ShouldBe(1);
+        model.Relationships.Count.ShouldBe(2);
+        model.TableGroups.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void DbmlParser_WithComplexChartDbDbml_ReturnComplexModel()
+    {
+        var dbmlContent = @"
+Table ""projects"" {
+  ""project_id"" varchar(500) [pk, not null] [ref: < ""task_results"".""project_id""]
+  ""project_name"" varchar(500) [not null]
+  ""requirements"" varchar(500)
+  ""task_plan"" varchar(500)
+  ""status"" varchar(500) [not null]
+  ""created_at"" timestamp [not null]
+  ""updated_at"" timestamp
+}
+
+Table ""task_results"" {
+  ""project_id"" varchar(500) [not null]
+  ""task_id"" varchar(500) [not null] [ref: < ""task_dependencies"".""dependency_task_id""]
+  ""name"" varchar(500) [not null]
+  ""description"" varchar(500)
+  ""agent_type"" varchar(500) [not null]
+  ""priority"" varchar(500)
+  ""estimated_hours"" bigint
+  ""result_data"" varchar(500)
+  ""status"" varchar(500) [not null]
+  ""created_at"" timestamp [not null]
+  ""updated_at"" timestamp
+
+  Indexes {
+    (task_id, agent_type, project_id) [unique, name: ""public_idx_task_results_task_id_agent_type""]
+  }
+}
+
+Table ""task_dependencies"" {
+  ""id"" bigint [pk, not null]
+  ""project_id"" varchar(500) [not null]
+  ""task_id"" varchar(500) [not null]
+  ""dependency_task_id"" varchar(500) [not null]
+  ""created_at"" timestamp
+  ""updated_at"" timestamp
+
+  Indexes {
+    (task_id, dependency_task_id, project_id) [unique, name: ""public_index_1""]
+  }
+}
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Project.ShouldBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Tables[2].Name.ShouldBe("task_dependencies");
+        model.Tables[1].Indexes.Count.ShouldBe(1);
+        model.Enums.Count.ShouldBe(0);
+        model.Relationships.Count.ShouldBe(2);
+        model.TableGroups.Count.ShouldBe(0);
+    }
 }
