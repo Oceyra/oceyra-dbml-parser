@@ -50,6 +50,13 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+          
       - name: Build solution and generate NuGet package
         run: dotnet pack $path_to_project --configuration Release --output bin  
 
