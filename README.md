@@ -28,6 +28,5 @@ Table posts {
 
 Ref: posts.user_id > users.id // many-to-one";
 
-var parser = DbmlParser();
-var dbModel = parser.Parse(dbmlContent);
+var dbModel = DbmlParser.Parse(dbmlContent);
 ```

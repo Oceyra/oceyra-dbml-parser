@@ -10,8 +10,8 @@ env:
   path_to_test_project: src/Tests/Oceyra.Dbml.Parser.Tests/Oceyra.Dbml.Parser.Tests.csproj
 
 jobs:
-  publish:
-    name: Build, Pack & Publish
+  test:
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -32,18 +32,25 @@ jobs:
 
       - name: Test Report
         uses: dorny/test-reporter@v2
-        if: success() || failure()          # run this step even if previous step failed
+        if:  ${{ !cancelled() }}            # run this step even if previous step failed
         with:
-          name: NUnit Tests                 # Name of the check run which will be created
+          name: Xunit Tests                 # Name of the check run which will be created
           path: TestResults/TestResults.trx # Path to test results
           reporter: dotnet-trx              # Format of test results
 
-      #- name: Upload test results
-      #  uses: actions/upload-artifact@v3
-      #  if: success() || failure()
-      #  with:
-      #    name: TestResults
-      #    path: TestResults/TestResults.trx
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: ${{ !cancelled() }} 
+        with:
+          name: TestResults
 
-      #- name: Push generated package to Gitea registry
-      #  run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
+  publish:
+    name: Pack & Publish
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build solution and generate NuGet package
+        run: dotnet pack $path_to_project --configuration Release --output bin  
+
+      - name: Push generated package to Gitea registry
+        run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
