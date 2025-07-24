@@ -242,7 +242,7 @@ public class DbmlParserTests
     }
 
     [Fact]
-    public void DbmlParser_WithComplexChartDbDbml_ReturnComplexModel()
+    public void DbmlParser_WithQuotedDbDbml_ReturnFieldWithoutQuote()
     {
         var dbmlContent = @"
 Table ""projects"" {
@@ -298,5 +298,110 @@ Table ""task_dependencies"" {
         model.Relationships[0].LeftTable.ShouldBe("projects");
         model.Relationships[0].RightTable.ShouldBe("task_results");
         model.TableGroups.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DbmlParser_WithComplexChartDbDbml_ReturnComplexModel()
+    {
+
+        var dbmlContent = @"Project DBML {
+  Note: '''
+  # DBML - Database Markup Language
+  DBML (database markup language) is a simple, readable DSL language designed to define database structures.
+
+  ## Benefits
+
+  * It is simple, flexible and highly human-readable
+  * It is database agnostic, focusing on the essential database structure definition without worrying about the detailed syntaxes of each database
+  * Comes with a free, simple database visualiser at [dbdiagram.io](http://dbdiagram.io)
+  '''
+}
+
+Table ""projects"" {
+  ""project_id"" varchar(500) [pk, not null] [ref: < ""task_results"".""project_id""]
+  ""project_name"" varchar(500) [not null]
+  ""requirements"" varchar(500)
+  ""task_plan"" varchar(500)
+  ""status"" varchar(500) [not null]
+  ""created_at"" timestamp [not null]
+  ""updated_at"" timestamp
+}
+
+Table ""task_results"" {
+  ""project_id"" varchar(500) [not null]
+  ""task_id"" varchar(500) [not null] [ref: < ""task_dependencies"".""dependency_task_id""]
+  ""name"" varchar(500) [not null]
+  ""description"" varchar(500)
+  ""agent_type"" varchar(500) [not null]
+  ""priority"" varchar(500)
+  ""estimated_hours"" bigint
+  ""result_data"" varchar(500)
+  ""status"" varchar(500) [not null]
+  ""created_at"" timestamp [not null]
+  ""updated_at"" timestamp
+
+  Indexes {
+    (task_id, agent_type, project_id) [unique, name: ""public_idx_task_results_task_id_agent_type""]
+  }
+}
+
+Table ""task_dependencies"" {
+  ""id"" bigint [pk, not null]
+  ""project_id"" varchar(500) [not null]
+  ""task_id"" varchar(500) [not null]
+  ""dependency_task_id"" varchar(500) [not null]
+  ""created_at"" timestamp
+  ""updated_at"" timestamp
+
+  Indexes {
+    (task_id, dependency_task_id, project_id) [unique, name: ""public_index_1""]
+  }
+}";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Project.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Tables[0].Indexes.Count.ShouldBe(0);
+        model.Tables[1].Indexes.Count.ShouldBe(1);
+        model.Tables[2].Indexes.Count.ShouldBe(1);
+        model.Relationships.Count.ShouldBe(2);
+
+        // Helper local function to resolve table name from alias or return as-is
+        void TestQuotesCleaned(string? testString)
+        {
+            testString.ShouldNotBeNull();
+            testString.ShouldNotContain("\'");
+            testString.ShouldNotContain("\"");
+            testString.ShouldNotContain("`");
+        }
+
+        TestQuotesCleaned(model.Project.Note);
+
+        foreach (var table in model.Tables)
+        {
+            TestQuotesCleaned(table.Name);
+
+            foreach (var column in table.Columns)
+            {
+                TestQuotesCleaned(column.Name);
+            }
+
+            foreach (var index in table.Indexes)
+            {
+                if (index.Settings.TryGetValue("name", out var name))
+                {
+                    TestQuotesCleaned(name);
+                }
+            }
+        }
+
+        foreach (var relationship in model.Relationships)
+        {
+            TestQuotesCleaned(relationship.LeftTable);
+            TestQuotesCleaned(relationship.LeftColumn);
+            TestQuotesCleaned(relationship.RightTable);
+            TestQuotesCleaned(relationship.RightColumn);
+        }
     }
 }

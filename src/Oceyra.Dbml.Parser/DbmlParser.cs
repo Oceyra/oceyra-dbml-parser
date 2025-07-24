@@ -603,8 +603,11 @@ public static partial class DbmlParser
         if (string.IsNullOrEmpty(value)) return value;
 
         value = value.Trim();
+
+        // Remove surrounding quotes if they match
         if (value.StartsWith("\"") && value.EndsWith("\"") ||
-            value.StartsWith("\'") && value.EndsWith("\'"))
+            value.StartsWith("\'") && value.EndsWith("\'") ||
+            value.StartsWith("`") && value.EndsWith("`"))
         {
             return value.Substring(1, value.Length - 2);
         }
@@ -623,18 +626,6 @@ public static partial class DbmlParser
             return value.Substring(3, value.Length - 6).Trim();
         }
 
-        // Handle single quotes
-        if (value.StartsWith("\'") && value.EndsWith("\'"))
-        {
-            return value.Substring(1, value.Length - 2);
-        }
-
-        // Handle backticks (expressions)
-        if (value.StartsWith("`") && value.EndsWith("`"))
-        {
-            return value.Substring(1, value.Length - 2);
-        }
-
-        return value;
+        return CleanQuotes(value);
     }
 }
