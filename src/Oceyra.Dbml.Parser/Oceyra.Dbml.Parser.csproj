@@ -11,7 +11,6 @@
     <Product>Oceyra Dbml Parser</Product>
     <Description>Parser for DBML format, to return the database model.</Description>
     <NuGetAuditMode>all</NuGetAuditMode>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
