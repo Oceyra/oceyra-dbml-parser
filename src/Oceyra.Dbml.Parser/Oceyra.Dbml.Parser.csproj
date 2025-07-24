@@ -10,11 +10,8 @@
     <Company>Oceyra</Company>
     <Product>Oceyra Dbml Parser</Product>
     <Description>Parser for DBML format, to return the database model.</Description>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="..\Common Files\global.json" Link="global.json" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" PrivateAssets="all" />
