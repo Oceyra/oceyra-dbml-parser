@@ -58,7 +58,7 @@ jobs:
           dotnet-version: 8.x
 
       - name: Build solution and generate NuGet package
-        run: dotnet pack $path_to_project -p:Version=0.5.${{ gitea.run_number }} --configuration Release --output bin  
+        run: dotnet pack $path_to_project -p:TargetFrameworks=netstandard2.0 -p:Version=0.5.${{ gitea.run_number }} --configuration Release --output bin  
 
       - name: Push generated package to Gitea registry
         run: dotnet nuget push ./bin/*.nupkg --source ${{ secrets.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
