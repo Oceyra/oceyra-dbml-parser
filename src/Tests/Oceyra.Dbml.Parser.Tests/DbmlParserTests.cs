@@ -207,7 +207,7 @@ public class DbmlParserTests
               delivered
               cancelled
             }
-            Table users {
+            Table users as U {
               id integer [primary key, increment]
               username varchar(50) [not null, unique]
               email varchar(100) [not null, unique]
@@ -216,7 +216,7 @@ public class DbmlParserTests
             }
             Table orders {
               id integer [pk, increment]
-              user_id integer [ref: > users.id, not null]
+              user_id integer [ref: > U.id, not null]
               status order_status [default: 'created']
               total decimal(10,2) [not null]
               created_at timestamp [default: `now()`]
@@ -295,6 +295,8 @@ Table ""task_dependencies"" {
         model.Tables[1].Indexes.Count.ShouldBe(1);
         model.Enums.Count.ShouldBe(0);
         model.Relationships.Count.ShouldBe(2);
+        model.Relationships[0].LeftTable.ShouldBe("projects");
+        model.Relationships[0].RightTable.ShouldBe("task_results");
         model.TableGroups.Count.ShouldBe(0);
     }
 }

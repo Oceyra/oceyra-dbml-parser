@@ -63,28 +63,43 @@ public static partial class DbmlParser
         // Parse enums
         document.Enums = ParseEnums(cleanContent);
 
-        var aliasToTableName = document.Tables
-            .Where(t => !string.IsNullOrEmpty(t.Alias))
-            .ToDictionary(t => t.Alias!, t => t.Name!);
-
         // Parse relationships
-        document.Relationships = ParseRelationships(cleanContent, aliasToTableName);
-
-        document.Relationships.AddRange(document.Tables
-            .SelectMany(t => t.Columns
-                .Where(c => c.InlineRef != null)
-                .Select(c => { 
-                    var relationship = c.InlineRef!;
-                    relationship.LeftTable = t.Name!;
-                    relationship.LeftColumn = c.Name!;
-                    return relationship;
-                })));
+        document.Relationships = ParseRelationships(cleanContent);
 
         // Parse table groups
         document.TableGroups = ParseTableGroups(cleanContent);
 
         // Parse sticky notes
         document.StickyNotes = ParseStickyNotes(cleanContent);
+
+        var aliasToTableName = document.Tables
+            .Where(t => !string.IsNullOrEmpty(t.Alias))
+            .ToDictionary(t => t.Alias!, t => t.Name!);
+
+        document.Relationships.AddRange(document.Tables
+            .SelectMany(t => t.Columns
+                .Where(c => c.InlineRef != null)
+                .Select(c =>
+                {
+                    var relationship = c.InlineRef!;
+                    relationship.LeftTable = t.Name!;
+                    relationship.LeftColumn = c.Name!;
+                    return relationship;
+                })));
+
+        // Resolve relationships using aliases
+        foreach (var relationship in document.Relationships)
+        {
+            if (aliasToTableName.TryGetValue(relationship.LeftTable!, out var realLeftTable))
+            {
+                relationship.LeftTable = realLeftTable;
+            }
+
+            if (aliasToTableName.TryGetValue(relationship.RightTable!, out var realRightTable))
+            {
+                relationship.RightTable = realRightTable;
+            }
+        }
 
         return document;
     }
@@ -119,7 +134,7 @@ public static partial class DbmlParser
             {
                 Schema = string.IsNullOrEmpty(match.Groups["schema"].Value) ? "public" : match.Groups["schema"].Value,
                 Name = CleanQuotes(match.Groups["table"].Value),
-                Alias = match.Groups["alias"].Value
+                Alias = CleanQuotes(match.Groups["alias"].Value)
             };
 
             // Parse table settings
@@ -168,10 +183,9 @@ public static partial class DbmlParser
                 if (partial != null)
                 {
                     // Merge settings
-                    foreach (var setting in partial.Settings)
+                    foreach (var setting in partial.Settings.Where(s => table.Settings.ContainsKey(s.Key)))
                     {
-                        if (!table.Settings.ContainsKey(setting.Key))
-                            table.Settings[setting.Key] = setting.Value;
+                        table.Settings[setting.Key] = setting.Value;
                     }
 
                     // Add columns
@@ -251,7 +265,7 @@ public static partial class DbmlParser
         return indexes;
     }
 
-    private static List<RelationshipModel> ParseRelationships(string content, Dictionary<string, string> aliasToTableName)
+    private static List<RelationshipModel> ParseRelationships(string content)
     {
         var relationships = new List<RelationshipModel>();
 
@@ -259,14 +273,14 @@ public static partial class DbmlParser
         var longMatches = RelationshipLongPattern.Matches(content);
         foreach (Match match in longMatches)
         {
-            relationships.Add(ParseRelationshipMatch(match, aliasToTableName));
+            relationships.Add(ParseRelationshipMatch(match));
         }
 
         // Parse short form relationships
         var shortMatches = RelationshipShortPattern.Matches(content);
         foreach (Match match in shortMatches)
         {
-            relationships.Add(ParseRelationshipMatch(match, aliasToTableName));
+            relationships.Add(ParseRelationshipMatch(match));
         }
 
         return relationships;
@@ -284,7 +298,7 @@ public static partial class DbmlParser
         };
     }
 
-    private static RelationshipModel ParseRelationshipMatch(Match match, Dictionary<string, string> aliasToTableName)
+    private static RelationshipModel ParseRelationshipMatch(Match match)
     {
         var relationship = new RelationshipModel
         {
@@ -292,20 +306,12 @@ public static partial class DbmlParser
             RelationshipType = ParseRelationshipType(match.Groups["relation"].Value)
         };
 
-        // Helper local function to resolve table name from alias or return as-is
-        string ResolveTableName(string tableOrAlias)
-        {
-            if (aliasToTableName.TryGetValue(tableOrAlias, out var realTable))
-                return realTable;
-            return tableOrAlias;
-        }
-
         // Parse left side
         var leftParts = match.Groups["left"].Value.Split('.');
         if (leftParts.Length >= 2)
         {
             var leftTableOrAlias = leftParts[leftParts.Length - 2];
-            relationship.LeftTable = ResolveTableName(leftTableOrAlias);
+            relationship.LeftTable = CleanQuotes(leftTableOrAlias);
             relationship.LeftColumn = CleanQuotes(leftParts[leftParts.Length - 1]);
         }
 
@@ -314,7 +320,7 @@ public static partial class DbmlParser
         if (rightParts.Length >= 2)
         {
             var rightTableOrAlias = rightParts[rightParts.Length - 2];
-            relationship.RightTable = ResolveTableName(rightTableOrAlias);
+            relationship.RightTable = CleanQuotes(rightTableOrAlias);
             relationship.RightColumn = CleanQuotes(rightParts[rightParts.Length - 1]);
         }
 
@@ -519,7 +525,7 @@ public static partial class DbmlParser
                         var targetParts = refMatch.Groups["target"].Value.Split('.');
                         if (targetParts.Length >= 2)
                         {
-                            column.InlineRef.RightTable = targetParts[targetParts.Length - 2];
+                            column.InlineRef.RightTable = CleanQuotes(targetParts[targetParts.Length - 2]);
                             column.InlineRef.RightColumn = CleanQuotes(targetParts[targetParts.Length - 1]);
                         }
                     }
