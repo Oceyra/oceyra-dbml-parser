@@ -1,7 +1,7 @@
 # Oceyra DBML Parser
-This project is used to parse a DBML from DbDiagram or ChartDb and return the model of the database
+This project is used to parse a DBML from DbDiagram or ChartDb and return the model of the database.
 
-[![Build status](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser/actions/workflows/publish.yaml/badge.svg?branch=main&event=push)](https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser/actions/workflows/publish.yaml?query=branch%3Amain+event%3Apush)
+[![Build status](https://github.com/oceyra/oceyra-dbml-parser/actions/workflows/publish.yaml/badge.svg?branch=main&event=push)](https://github.com/oceyra/oceyra-dbml-parser/actions/workflows/publish.yaml?query=branch%3Amain+event%3Apush)
 
 ## Usage Sample
 ```c#

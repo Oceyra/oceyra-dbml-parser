@@ -12,7 +12,7 @@
     <Description>Parser for DBML format, to return the database model.</Description>
     <NuGetAuditMode>all</NuGetAuditMode>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://gitea.duchaine.freeddns.org/ManufacturingTyde/oceyra-dbml-parser</RepositoryUrl>
+    <RepositoryUrl>https://github.com/oceyra/oceyra-dbml-parser</RepositoryUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
