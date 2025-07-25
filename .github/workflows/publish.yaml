@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main # Default release branch, may also be named 'master' or 'develop'
+    paths:
+      - '**.cs*'
 
 env:
   project: Oceyra.Dbml.Parser
@@ -48,14 +50,14 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.x
+          dotnet-version: 9.x
 
       - name: Build solution and generate NuGet package
         run: dotnet pack $path_to_project -p:Version=0.6.${{ github.run_number }} --configuration Release --output bin  
 
       - name: Push generated package to Local registry
         if: ${{ vars.nuget_api_url != '' }}
-        run: dotnet nuget push bin/*.nupkg --source ${{ vars.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
+        run: dotnet nuget push bin/*.nupkg --source ${{ vars.nuget_api_url }} --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }} --version-suffix Beta
 
       - name: Push generated package to Nuget registry
         if: ${{ vars.nuget_api_url == '' }}
