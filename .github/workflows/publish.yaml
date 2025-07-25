@@ -59,4 +59,4 @@ jobs:
 
       - name: Push generated package to Nuget registry
         if: ${{ vars.nuget_api_url == '' }}
-        run: dotnet nuget push bin/*.nupkg --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
+        run: dotnet nuget push bin/*.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate --no-symbols --api-key ${{ secrets.nuget_api_key }}
