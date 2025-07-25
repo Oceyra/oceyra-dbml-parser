@@ -94,7 +94,6 @@ public class DbmlParserTests
         model.Relationships[0].RelationshipType.ShouldBe(RelationshipType.OneToMany);
     }
 
-
     [Fact]
     public void DbmlParser_WithSpecifiedDefaultValue_ReturnDefaultValue()
     {
@@ -368,7 +367,7 @@ Table ""task_dependencies"" {
         model.Relationships.Count.ShouldBe(2);
 
         // Helper local function to resolve table name from alias or return as-is
-        void TestQuotesCleaned(string? testString)
+        static void TestQuotesCleaned(string? testString)
         {
             testString.ShouldNotBeNull();
             testString.ShouldNotContain("\'");
@@ -399,9 +398,331 @@ Table ""task_dependencies"" {
         foreach (var relationship in model.Relationships)
         {
             TestQuotesCleaned(relationship.LeftTable);
-            TestQuotesCleaned(relationship.LeftColumn);
             TestQuotesCleaned(relationship.RightTable);
-            TestQuotesCleaned(relationship.RightColumn);
+
+            foreach (var column in relationship.LeftColumns)
+            {
+                TestQuotesCleaned(column);
+            }
+
+            foreach (var column in relationship.RightColumns)
+            {
+                TestQuotesCleaned(column);
+            }
         }
+    }
+
+    [Fact]
+    public void DbmlParser_WithSimpleCompositeForeignKey_ReturnsTwoRelationships()
+    {
+        var dbmlContent = @"Table orders {
+  order_id integer [pk]
+  customer_id integer
+  store_id integer
+
+  indexes {
+    (order_id, customer_id)
+  }
+}
+
+Table customers {
+  customer_id integer [pk]
+  store_id integer [pk]
+  name varchar
+}
+
+Ref: orders.(customer_id, store_id) > customers.(customer_id, store_id)";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(1);
+        model.Relationships[0].LeftColumns.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DbmlParser_WithCompositeRefInBlock_ReturnsTwoRelationships()
+    {
+        var dbmlContent = @"Table invoices {
+  invoice_id integer [pk]
+  client_id integer
+  region_id integer
+}
+
+Table clients {
+  client_id integer [pk]
+  region_id integer [pk]
+  name varchar
+}
+
+Ref {
+  invoices.client_id > clients.client_id
+  invoices.region_id > clients.region_id
+}";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DbmlParser_WithMultiColumnIndexAndCompositeKey_ReturnsExpectedIndexes()
+    {
+        var dbmlContent = @"Table product_orders {
+  order_id int
+  product_id int
+  quantity int
+
+  Indexes {
+    (order_id, product_id) [unique]
+  }
+}
+
+Table products {
+  product_id int [pk]
+  name varchar
+}
+
+Table orders {
+  order_id int [pk]
+  date timestamp
+}";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Tables[0].Indexes.Count.ShouldBe(1);
+        model.Relationships.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DbmlParser_WithCompositeForeignKeysAcrossMultipleTables_ReturnsExpectedRelationships()
+    {
+        var dbmlContent = @"Table enrollments {
+  student_id int
+  course_id int
+  semester varchar
+}
+
+Table students {
+  student_id int [pk]
+  name varchar
+}
+
+Table courses {
+  course_id int [pk]
+  title varchar
+}
+
+Ref: enrollments.student_id > students.student_id
+Ref: enrollments.course_id > courses.course_id";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DbmlParser_WithNestedCompositeKeys_ReturnsCorrectSchema()
+    {
+        var dbmlContent = @"Table schedule {
+  class_id int
+  room_id int
+  time_slot varchar
+}
+
+Table classes {
+  class_id int [pk]
+  subject varchar
+}
+
+Table rooms {
+  room_id int [pk]
+  location varchar
+}
+
+Ref {
+  schedule.class_id > classes.class_id
+  schedule.room_id > rooms.room_id
+}";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void DbmlParser_WithSimpleCompositeForeignKey_ReturnsOneRelationship()
+    {
+        var dbmlContent = @"
+Table orders {
+  order_id integer [pk]
+  customer_id integer
+  store_id integer
+
+  indexes {
+    (order_id, customer_id)
+  }
+}
+
+Table customers {
+  customer_id integer [pk]
+  store_id integer [pk]
+  name varchar
+}
+
+Ref: orders.(customer_id, store_id) > customers.(customer_id, store_id)
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(1);
+
+        var rel = model.Relationships[0];
+        rel.LeftTable.ShouldBe("orders");
+        rel.RightTable.ShouldBe("customers");
+        rel.LeftColumns.ShouldBe(["customer_id", "store_id"]);
+        rel.RightColumns.ShouldBe(["customer_id", "store_id"]);
+    }
+
+    [Fact]
+    public void DbmlParser_WithCompositeRefInBlock_ReturnsOneRelationship()
+    {
+        var dbmlContent = @"
+Table invoices {
+  invoice_id integer [pk]
+  client_id integer
+  region_id integer
+}
+
+Table clients {
+  client_id integer [pk]
+  region_id integer [pk]
+  name varchar
+}
+
+Ref {
+  invoices.(client_id, region_id) > clients.(client_id, region_id)
+}
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(2);
+        model.Relationships.Count.ShouldBe(1);
+
+        var rel = model.Relationships[0];
+        rel.LeftTable.ShouldBe("invoices");
+        rel.RightTable.ShouldBe("clients");
+        rel.LeftColumns.ShouldBe(["client_id", "region_id"]);
+        rel.RightColumns.ShouldBe(["client_id", "region_id"]);
+    }
+
+    [Fact]
+    public void DbmlParser_WithMultiColumnIndexAndCompositeKey2_ReturnsExpectedIndexes()
+    {
+        var dbmlContent = @"
+Table product_orders {
+  order_id int
+  product_id int
+  quantity int
+
+  Indexes {
+    (order_id, product_id) [unique]
+  }
+}
+
+Table products {
+  product_id int [pk]
+  name varchar
+}
+
+Table orders {
+  order_id int [pk]
+  date timestamp
+}
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Tables[0].Indexes.Count.ShouldBe(1);
+        model.Relationships.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DbmlParser_WithCompositeForeignKeysAcrossMultipleTables_ReturnsTwoRelationships()
+    {
+        var dbmlContent = @"
+Table enrollments {
+  student_id int
+  course_id int
+  semester varchar
+}
+
+Table students {
+  student_id int [pk]
+  name varchar
+}
+
+Table courses {
+  course_id int [pk]
+  title varchar
+}
+
+Ref: enrollments.student_id > students.student_id
+Ref: enrollments.course_id > courses.course_id
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(2);
+
+        // This test keeps multiple separate foreign keys because it's testing multiple relationships on different columns.
+        // No change needed here unless you want to test composite FK combining student_id and course_id.
+    }
+
+    [Fact]
+    public void DbmlParser_WithNestedCompositeKeys2_ReturnsCorrectSchema()
+    {
+        var dbmlContent = @"
+Table schedule {
+  class_id int
+  room_id int
+  time_slot varchar
+}
+
+Table classes {
+  class_id int [pk]
+  subject varchar
+}
+
+Table rooms {
+  room_id int [pk]
+  location varchar
+}
+
+Ref {
+  schedule.(class_id, room_id) > classes.(class_id, room_id)
+}
+";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(1);
+
+        var rel = model.Relationships[0];
+        rel.LeftTable.ShouldBe("schedule");
+        rel.RightTable.ShouldBe("classes");
+        rel.LeftColumns.ShouldBe(["class_id", "room_id"]);
+        rel.RightColumns.ShouldBe(["class_id", "room_id"]);
     }
 }
