@@ -577,7 +577,6 @@ public static partial class DbmlParser
                         column.InlineRef = new RelationshipModel
                         {
                             RelationshipType = ParseRelationshipType(refMatch.Groups["relation"].Value),
-                            LeftColumns = [column.Name]// Default to current column's name
                         };
 
                         var targetParts = refMatch.Groups["target"].Value.Split('.');

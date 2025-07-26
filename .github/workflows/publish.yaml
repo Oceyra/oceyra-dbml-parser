@@ -53,7 +53,7 @@ jobs:
           dotnet-version: 9.x
 
       - name: Build solution and generate NuGet package
-        run: dotnet pack $path_to_project -p:Version=0.6.${{ github.run_number }} --configuration Release --output bin  
+        run: dotnet pack $path_to_project -p:Version=0.7.${{ github.run_number }} --configuration Release --output bin  
 
       - name: Push generated package to Local registry
         if: ${{ vars.nuget_api_url != '' }}
