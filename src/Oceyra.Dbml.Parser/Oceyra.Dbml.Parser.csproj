@@ -9,7 +9,7 @@
     <Authors>Pier-Luc Duchaine</Authors>
     <Company>Oceyra</Company>
     <Product>Oceyra Dbml Parser</Product>
-    <Description>Parser for DBML format, to return the database model.</Description>
+    <Description>Parser for DBML format, from ChartDB or DbDiagram, to return the database model.</Description>
     <NuGetAuditMode>all</NuGetAuditMode>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/oceyra/oceyra-dbml-parser</RepositoryUrl>
@@ -35,4 +35,5 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  
 </Project>
