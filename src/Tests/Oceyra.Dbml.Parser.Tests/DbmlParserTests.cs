@@ -30,7 +30,7 @@ public class DbmlParserTests
               created_at timestamp
             }
 
-            Ref: posts.user_id > users.id // many-to-one";
+            Ref ""foreignkey_name_fk"": posts.user_id > users.id // many-to-one";
 
         var model = DbmlParser.Parse(dbmlContent);
 

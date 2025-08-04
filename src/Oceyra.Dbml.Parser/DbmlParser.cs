@@ -21,9 +21,9 @@ public static partial class DbmlParser
 
     private static readonly Regex RelationshipLinePattern = new(@"^\s*(?<left>(?:\w+|\""[^\""]+\"")\.(?:\((?<leftcols>[^)]+)\)|(?<leftcol>\w+|\""[^\""]+\"")))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\w+|\""[^\""]+\"")\.(?:\((?<rightcols>[^)]+)\)|(?<rightcol>\w+|\""[^\""]+\"")))\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
-    private static readonly Regex RelationshipLongPattern = new(@"Ref\s*(?<name>\w+)?\s*\{\s*(?<left>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<settings>\[[^\]]*\])?\s*\}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex RelationshipLongPattern = new(@"Ref\s*(?<name>\w+|\""[^""]+\"")?\s*\{\s*(?<left>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<settings>\[[^\]]*\])?\s*\}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-    private static readonly Regex RelationshipShortPattern = new(@"Ref\s*(?<name>\w+)?:\s*(?<left>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(\[(?<settings>[^\]]*)\])?", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex RelationshipShortPattern = new(@"Ref\s*(?<name>\w+|\""[^""]+\"")?:\s*(?<left>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(\[(?<settings>[^\]]*)\])?", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
     private static readonly Regex InlineRefPattern = new(@"\s*(?<relation><>|<|>|-)\s*(?<target>(?:(?:\w+|""[^""]+"")\.){1,2}(?:\w+|""[^""]+""))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -350,7 +350,7 @@ public static partial class DbmlParser
     {
         var relationship = new RelationshipModel
         {
-            Name = string.IsNullOrEmpty(match.Groups["name"].Value) ? blockName : match.Groups["name"].Value,
+            Name = string.IsNullOrEmpty(match.Groups["name"].Value) ? blockName : CleanQuotes(match.Groups["name"].Value),
             RelationshipType = ParseRelationshipType(match.Groups["relation"].Value)
         };
 
