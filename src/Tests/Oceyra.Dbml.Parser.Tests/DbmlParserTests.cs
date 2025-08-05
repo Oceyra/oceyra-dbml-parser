@@ -1,4 +1,7 @@
-﻿using Oceyra.Dbml.Parser.Models;
+﻿using System;
+using System.Xml;
+using Oceyra.Dbml.Parser;
+using Oceyra.Dbml.Parser.Models;
 using Shouldly;
 using Xunit;
 
@@ -724,5 +727,114 @@ Ref {
         rel.RightTable.ShouldBe("classes");
         rel.LeftColumns.ShouldBe(["class_id", "room_id"]);
         rel.RightColumns.ShouldBe(["class_id", "room_id"]);
+    }
+
+
+    [Fact]
+    public void DbmlParser_WithRelationship_ReturnsCorrectRelationship()
+    {
+        var dbmlContent = @"
+            Table ""nuget_packages"" {
+              ""id"" int[pk, not null]
+              ""package_id"" varchar(500) [unique, not null]
+              ""package_version"" varchar(500) [not null]
+            }
+
+            Table ""datasource_providers"" {
+              ""id"" int[pk, not null]
+              ""name"" varchar(500)
+              ""nuget_package_id"" int[not null]
+              ""use_method"" varchar(500) [not null]
+            }
+
+            Table ""datasources"" {
+              ""id"" int [pk, not null]
+            ""name"" int[unique, not null]
+              ""datasource_provider_id"" int [not null]
+            ""connection"" varchar(500)
+              ""username"" varchar(500)
+              ""password"" varchar(500)
+
+              Indexes {
+                name [unique, name: ""idx_name""]
+              }
+            }
+
+            Ref ""fk_0_datasource_providers_nuget_package_id_fk"":""nuget_packages"".""id"" < ""datasource_providers"".""nuget_package_id""
+
+            Ref ""fk_1_datasources_datasource_provider_id_fk"":""datasource_providers"".""id"" < ""datasources"".""datasource_provider_id""
+            ";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(2);
+
+        var rel = model.Relationships[0];
+        rel.LeftTable.ShouldBe("nuget_packages");
+        rel.RightTable.ShouldBe("datasource_providers");
+        rel.LeftColumns.ShouldBe(["id"]);
+        rel.RightColumns.ShouldBe(["nuget_package_id"]);
+    }
+
+    [Fact]
+    public void DbmlParser_WithInlineRelationship_ReturnsCorrectRelationship()
+    {
+        var dbmlContent = @"
+            Table ""public"".""nuget_packages"" {
+                ""id"" integer [pk, not null]
+                ""package_id"" varchar(500)[unique, not null]
+                ""package_version"" varchar(500)[not null]
+                ""created_at"" timestamp[not null]
+                ""created_by"" varchar(500)[not null]
+                ""updated_at"" timestamp[not null]
+                ""updated_by"" varchar(500)[not null]
+            }
+
+            Table ""public"".""datasource_providers"" {
+                ""id"" integer[pk, not null]
+                ""name"" varchar(500)
+                ""description"" varchar(500)
+                ""nuget_package_id"" integer[ref: < ""public"".""nuget_packages"".""id""]
+                ""use_method"" varchar(500) [not null]
+                ""created_at"" timestamp[not null]
+                ""created_by"" varchar(500) [not null]
+                ""updated_at"" timestamp[not null]
+                ""updated_by"" varchar(500) [not null]
+
+                Indexes {
+                name[name: ""idx_name""]
+                }
+            }
+
+            Table ""public"".""datasources"" {
+                ""id"" integer [pk, not null]
+                ""name"" integer[unique, not null]
+                ""description"" varchar(500)
+                ""enabled"" bool
+                ""datasource_provider_id"" integer [not null, ref: < ""public"".""datasource_providers"".""id""]
+                ""connection"" varchar(500)
+                ""username"" varchar(500)
+                ""password"" varchar(500)
+                ""created_at"" timestamp[not null]
+                ""created_by"" varchar(500)[not null]
+                ""updated_at"" timestamp[not null]
+                ""updated_by"" varchar(500)[not null]
+
+                Indexes {
+                name [unique, name: ""idx_name""]
+                }
+            }";
+
+        var model = DbmlParser.Parse(dbmlContent);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(3);
+        model.Relationships.Count.ShouldBe(2);
+
+        var rel = model.Relationships[0];
+        rel.LeftTable.ShouldBe("datasource_providers");
+        rel.RightTable.ShouldBe("nuget_packages");
+        rel.LeftColumns.ShouldBe(["nuget_package_id"]);
+        rel.RightColumns.ShouldBe(["id"]);
     }
 }

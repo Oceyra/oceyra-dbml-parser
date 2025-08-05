@@ -9,7 +9,7 @@ public static partial class DbmlParser
     // Compiled regex patterns for performance
     private static readonly Regex ProjectPattern = new(@"Project\s+(?<name>\w+|\""[^""]+\"")\s*\{\s*(?<content>(?:[^{}]|{[^}]*})*)\s*\}", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
-    private static readonly Regex SchemaTablePattern = new(@"Table\s+(?:(?<schema>\w+)\.)?(?<table>\w+|\""[^""]+\"")(?:\s+as\s+(?<alias>\w+))?\s*(?<settings>\[[^\]]*\])?\s*\{\s*(?<content>(?:[^{}]|{[^}]*})*)\s*\}", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
+    private static readonly Regex SchemaTablePattern = new(@"Table\s+(?:(?<schema>\w+|\""[^""]+\"")\.)?(?<table>\w+|\""[^""]+\"")(?:\s+as\s+(?<alias>\w+|\""[^""]+\""))?\s*(?<settings>\[[^\]]*\])?\s*\{\s*(?<content>(?:[^{}]|{[^}]*})*)\s*\}", RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
     private static readonly Regex ColumnPattern = new(@"^\s*(?<name>\w+|\""[^""]+\"")\s+(?<type>[\w\(\),\s]+?)(?<settings>(?:\s*\[[^\[\]]*\])*)\s*(?://.*)?$", RegexOptions.Compiled | RegexOptions.Multiline);
 
@@ -27,7 +27,7 @@ public static partial class DbmlParser
 
     private static readonly Regex InlineRefPattern = new(@"\s*(?<relation><>|<|>|-)\s*(?<target>(?:(?:\w+|""[^""]+"")\.){1,2}(?:\w+|""[^""]+""))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    private static readonly Regex EnumPattern = new(@"enum\s+(?:(?<schema>\w+)\.)?(?<name>\w+|\""[^""]+\"")\s*\{\s*(?<content>(?:[^{}]|{[^}]*})*)\s*\}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex EnumPattern = new(@"enum\s+(?:(?<schema>\w+|\""[^""]+\"")\.)?(?<name>\w+|\""[^""]+\"")\s*\{\s*(?<content>(?:[^{}]|{[^}]*})*)\s*\}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
     private static readonly Regex EnumValuePattern = new(@"^\s*(?<value>\w+|\""[^""]+\"")(?:\s*(?<settings>\[[^\]]*\]))?\s*(?://.*)?$", RegexOptions.Compiled | RegexOptions.Multiline);
 
@@ -136,7 +136,7 @@ public static partial class DbmlParser
         {
             var table = new TableModel
             {
-                Schema = string.IsNullOrEmpty(match.Groups["schema"].Value) ? "public" : match.Groups["schema"].Value,
+                Schema = string.IsNullOrEmpty(match.Groups["schema"].Value) ? "public" : CleanQuotes(match.Groups["schema"].Value),
                 Name = CleanQuotes(match.Groups["table"].Value),
                 Alias = CleanQuotes(match.Groups["alias"].Value)
             };
