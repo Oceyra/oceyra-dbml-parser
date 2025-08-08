@@ -17,13 +17,11 @@ public static partial class DbmlParser
 
     private static readonly Regex IndexItemPattern = new(@"^\s*(?:\((?<columns>(?:`[^`]*`|[^,)]+)(?:\s*,\s*(?:`[^`]*`|[^,)]+))*)\)|(?<column>`[^`]+`|\w+))\s*(?<settings>\[[^\]]*\])?\s*(?://.*)?$", RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace | RegexOptions.Multiline);
 
-    private static readonly Regex RelationshipBlockPattern = new(@"Ref\s*\{\s*(?<content>[^}]*)\}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+    private static readonly string RelationshipTablePattern = @"((?:\w+|\""[^""]+\"")\.){1,2}\(?(?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)?";
 
-    private static readonly Regex RelationshipLinePattern = new(@"^\s*(?<left>(?:\w+|\""[^\""]+\"")\.(?:\((?<leftcols>[^)]+)\)|(?<leftcol>\w+|\""[^\""]+\"")))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\w+|\""[^\""]+\"")\.(?:\((?<rightcols>[^)]+)\)|(?<rightcol>\w+|\""[^\""]+\"")))\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+    private static readonly Regex RelationshipLongPattern = new(@$"Ref\s*(?<name>\w+|\""[^""]+\"")?\s*\{{\s*(?<left>{RelationshipTablePattern})\s*(?<relation>[<>-]|<>)\s*(?<right>{RelationshipTablePattern})\s*(\[(?<settings>[^\]]*)\])?\s*\}}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
-    private static readonly Regex RelationshipLongPattern = new(@"Ref\s*(?<name>\w+|\""[^""]+\"")?\s*\{\s*(?<left>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\[(?:[^\]]+)\]|(?:\w+\.)?(?:\w+|""[^""]+"")\.(?:\w+|""[^""]+"")))\s*(?<settings>\[[^\]]*\])?\s*\}", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
-
-    private static readonly Regex RelationshipShortPattern = new(@"Ref\s*(?<name>\w+|\""[^""]+\"")?:\s*(?<left>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(?<relation>[<>-]|<>)\s*(?<right>(?:\w+|\""[^""]+\"")\.\((?:\w+|\""[^""]+\"")(?:\s*,\s*(?:\w+|\""[^""]+\""))*\)|(?:\w+|\""[^""]+\"")\.(?:\w+|\""[^""]+\""))\s*(\[(?<settings>[^\]]*)\])?", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
+    private static readonly Regex RelationshipShortPattern = new(@$"Ref\s*(?<name>\w+|\""[^""]+\"")?:\s*(?<left>{RelationshipTablePattern})\s*(?<relation>[<>-]|<>)\s*(?<right>{RelationshipTablePattern})\s*(\[(?<settings>[^\]]*)\])?", RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.IgnoreCase);
 
     private static readonly Regex InlineRefPattern = new(@"\s*(?<relation><>|<|>|-)\s*(?<target>(?:(?:\w+|""[^""]+"")\.){1,2}(?:\w+|""[^""]+""))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -47,6 +45,11 @@ public static partial class DbmlParser
 
     private static readonly Regex WhitespacePattern = new(@"\s+");
     #endregion Regex Patterns
+
+    public static DatabaseModel ParseFromFile(string filepath)
+    {
+        return Parse(File.ReadAllText(filepath));
+    }
 
     public static DatabaseModel Parse(string dbmlContent)
     {
@@ -82,14 +85,14 @@ public static partial class DbmlParser
 
         document.Relationships.AddRange(document.Tables
             .SelectMany(t => t.Columns
-                .Where(c => c.InlineRef != null)
-                .Select(c =>
-                {
-                    var relationship = c.InlineRef!;
-                    relationship.LeftTable = t.Name!;
-                    relationship.LeftColumns.Add(c.Name!);
-                    return relationship;
-                })));
+                .SelectMany(c =>
+                    c.InlineRefs.Select(relationship =>
+                    {
+                        relationship.LeftSchema = t.Schema;
+                        relationship.LeftTable = t.Name!;
+                        relationship.LeftColumns.Add(c.Name!);
+                        return relationship;
+                    }))));
 
         // Resolve relationships using aliases
         foreach (var relationship in document.Relationships)
@@ -273,58 +276,14 @@ public static partial class DbmlParser
     {
         var relationships = new List<RelationshipModel>();
 
-        // 1) Parse Ref blocks with multiple composite FKs
-        foreach (Match blockMatch in RelationshipBlockPattern.Matches(content))
-        {
-            var blockContent = blockMatch.Groups["content"].Value;
-
-            var lines = blockContent.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                var lineMatch = RelationshipLinePattern.Match(line.Trim());
-                if (lineMatch.Success)
-                {
-                    var relationship = new RelationshipModel
-                    {
-                        LeftTable = CleanQuotes(lineMatch.Groups["left"].Value.Split('.')[0]),
-                        RightTable = CleanQuotes(lineMatch.Groups["right"].Value.Split('.')[0])
-                    };
-
-                    if (lineMatch.Groups["leftcols"].Success)
-                    {
-                        var leftCols = lineMatch.Groups["leftcols"].Value.Split([','], StringSplitOptions.RemoveEmptyEntries);
-                        relationship.LeftColumns = [.. leftCols.Select(c => CleanQuotes(c.Trim()))];
-                    }
-                    else if (lineMatch.Groups["leftcol"].Success)
-                    {
-                        relationship.LeftColumns = [CleanQuotes(lineMatch.Groups["leftcol"].Value)];
-                    }
-
-                    if (lineMatch.Groups["rightcols"].Success)
-                    {
-                        var rightCols = lineMatch.Groups["rightcols"].Value.Split([','], StringSplitOptions.RemoveEmptyEntries);
-                        relationship.RightColumns = [.. rightCols.Select(c => CleanQuotes(c.Trim()))];
-                    }
-                    else if (lineMatch.Groups["rightcol"].Success)
-                    {
-                        relationship.RightColumns = [CleanQuotes(lineMatch.Groups["rightcol"].Value)];
-                    }
-
-                    relationship.RelationshipType = ParseRelationshipType(lineMatch.Groups["relation"].Value);
-
-                    relationships.Add(relationship);
-                }
-            }
-        }
-
-        // 2. Parse existing long form relationships (single line)
+        // 1. Parse existing long form relationships (single line)
         var longMatches = RelationshipLongPattern.Matches(content);
         foreach (Match match in longMatches)
         {
             relationships.Add(ParseRelationshipMatch(match));
         }
 
-        // 3. Parse short form relationships
+        // 2. Parse short form relationships
         var shortMatches = RelationshipShortPattern.Matches(content);
         foreach (Match match in shortMatches)
         {
@@ -357,13 +316,8 @@ public static partial class DbmlParser
         var left = match.Groups["left"].Value;
         var right = match.Groups["right"].Value;
 
-        var leftParts = left.Split('.');
-        relationship.LeftTable = CleanQuotes(leftParts[0]);
-        relationship.LeftColumns = ExtractColumns(left);
-
-        var rightParts = right.Split('.');
-        relationship.RightTable = CleanQuotes(rightParts[0]);
-        relationship.RightColumns = ExtractColumns(right);
+        (relationship.LeftSchema, relationship.LeftTable, relationship.LeftColumns) = ParseRelationshipTableParts(left);
+        (relationship.RightSchema, relationship.RightTable, relationship.RightColumns) = ParseRelationshipTableParts(right);
 
         if (match.Groups["settings"].Success)
         {
@@ -371,6 +325,17 @@ public static partial class DbmlParser
         }
 
         return relationship;
+    }
+
+    private static (string, string, List<string>) ParseRelationshipTableParts(string part)
+    {
+        var parts = part.Split('.');
+        if (parts.Length < 2)
+            throw new ArgumentException("Invalid relationship part format: " + part);
+        var schema = parts.Length > 2 ? CleanQuotes(parts[0]) : "public";
+        var table = CleanQuotes(parts[parts.Length - 2]);
+        var columns = ExtractColumns(part);
+        return (schema, table, columns);
     }
 
     private static List<string> ExtractColumns(string side)
@@ -574,17 +539,14 @@ public static partial class DbmlParser
                     var refMatch = InlineRefPattern.Match(value);
                     if (refMatch.Success)
                     {
-                        column.InlineRef = new RelationshipModel
+                        var relationship = new RelationshipModel
                         {
                             RelationshipType = ParseRelationshipType(refMatch.Groups["relation"].Value),
                         };
 
-                        var targetParts = refMatch.Groups["target"].Value.Split('.');
-                        if (targetParts.Length >= 2)
-                        {
-                            column.InlineRef.RightTable = CleanQuotes(targetParts[targetParts.Length - 2]);
-                            column.InlineRef.RightColumns = [CleanQuotes(targetParts[targetParts.Length - 1])];
-                        }
+                        (relationship.RightSchema, relationship.RightTable, relationship.RightColumns) = ParseRelationshipTableParts(refMatch.Groups["target"].Value);
+
+                        column.InlineRefs.Add(relationship);
                     }
                 }
             }

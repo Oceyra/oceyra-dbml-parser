@@ -1,0 +1,84 @@
+Table "public"."datasource_providers" {
+  "id" integer [pk, not null, ref: < "public"."datasources"."datasource_provider_id"]
+  "name" varchar(500)
+  "description" varchar(500)
+  "nuget_package_id" integer
+  "use_method" varchar(500) [not null]
+  "created_at" timestamp [not null]
+  "created_by" varchar(500) [not null]
+  "updated_at" timestamp [not null]
+  "updated_by" varchar(500) [not null]
+
+  Indexes {
+    name [name: "idx_name"]
+  }
+}
+
+Table "public"."datasources" {
+  "id" integer [pk, not null]
+  "name" integer [unique, not null]
+  "description" varchar(500)
+  "enabled" bool
+  "datasource_provider_id" integer [not null]
+  "connection" varchar(500)
+  "username" varchar(500)
+  "password" varchar(500)
+  "created_at" timestamp [not null]
+  "created_by" varchar(500) [not null]
+  "updated_at" timestamp [not null]
+  "updated_by" varchar(500) [not null]
+
+  Indexes {
+    name [unique, name: "idx_name"]
+  }
+}
+
+Table "public"."nuget_packages" {
+  "id" integer [pk, not null, ref: < "public"."datasource_providers"."nuget_package_id"]
+  "package_id" varchar(500) [unique, not null]
+  "package_version" varchar(500) [not null]
+  "created_at" timestamp [not null]
+  "created_by" varchar(500) [not null]
+  "updated_at" timestamp [not null]
+  "updated_by" varchar(500) [not null]
+}
+
+Table "public"."roles" {
+  "id" integer [pk, not null, ref: < "public"."user_roles"."role_id"]
+  "name" varchar(500)
+  "description" varchar(500)
+  "user_source_id" integer
+  "created_at" timestamp [not null]
+  "created_by" varchar(500) [not null]
+  "updated_at" timestamp [not null]
+  "updated_by" varchar(500) [not null]
+}
+
+Table "public"."users" {
+  "id" integer [pk, not null, ref: < "public"."user_roles"."user_id"]
+  "username" varchar(500) [unique, not null]
+  "enabled" bool [not null]
+  "password" varchar(500)
+  "firstname" varchar(500)
+  "lastname" varchar(500)
+  "user_source_id" integer
+  "created_at" timestamp [not null]
+  "created_by" varchar(500) [not null]
+  "updated_at" timestamp [not null]
+  "updated_by" varchar(500) [not null]
+}
+
+Table "public"."user_roles" {
+  "id" integer [pk, not null]
+  "user_id" integer [not null]
+  "role_id" integer [not null]
+
+  Indexes {
+    (user_id, role_id) [unique, name: "idx_user_role"]
+  }
+}
+
+Table "user_sources" {
+  "id" integer [pk, not null, ref: < "public"."users"."user_source_id", ref: < "public"."roles"."user_source_id"]
+  "name" varchar(500)
+}

@@ -7,7 +7,7 @@ public class ColumnModel
     public string? DefaultValue { get; set; }
     public Dictionary<string, string> Settings { get; set; } = [];
     public string? Note { get; set; }
-    public RelationshipModel? InlineRef { get; set; }
+    public List<RelationshipModel> InlineRefs { get; set; } = [];
 
     // Individual flag properties
     public bool IsPrimaryKey { get; set; }

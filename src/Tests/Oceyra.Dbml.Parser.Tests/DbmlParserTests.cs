@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Xml;
 using Oceyra.Dbml.Parser;
 using Oceyra.Dbml.Parser.Models;
@@ -460,6 +461,9 @@ Table clients {
 
 Ref {
   invoices.client_id > clients.client_id
+}
+
+Ref {
   invoices.region_id > clients.region_id
 }";
 
@@ -548,6 +552,9 @@ Table rooms {
 
 Ref {
   schedule.class_id > classes.class_id
+}
+
+Ref {
   schedule.room_id > rooms.room_id
 }";
 
@@ -836,5 +843,27 @@ Ref {
         rel.RightTable.ShouldBe("nuget_packages");
         rel.LeftColumns.ShouldBe(["nuget_package_id"]);
         rel.RightColumns.ShouldBe(["id"]);
+    }
+
+    [Fact]
+    public void DbmlParser_WithComplexReference_ReturnValidModelWithRelationships()
+    {
+        var filepath = Path.Combine("dbml", $"{MethodBase.GetCurrentMethod()!.Name}.dbml");
+
+        var model = DbmlParser.ParseFromFile(filepath);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(7);
+        model.Relationships.Count.ShouldBe(6);
+    }
+
+    [Fact]
+    public void DbmlParser_WithMultipleInlineReference_ReturnValidModelWithAllRelationships()
+    {
+        var filepath = Path.Combine("dbml", $"{MethodBase.GetCurrentMethod()!.Name}.dbml");
+
+        var model = DbmlParser.ParseFromFile(filepath);
+        model.ShouldNotBeNull();
+        model.Tables.Count.ShouldBe(7);
+        model.Relationships.Count.ShouldBe(6);
     }
 }
