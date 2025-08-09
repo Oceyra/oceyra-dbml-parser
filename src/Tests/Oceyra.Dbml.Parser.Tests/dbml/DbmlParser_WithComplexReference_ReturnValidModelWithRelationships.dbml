@@ -91,6 +91,6 @@ Ref "fk_2_users_id_user_roles_user_id":"public"."user_roles"."user_id" < "public
 
 Ref "fk_3_roles_id_user_roles_role_id":"public"."user_roles"."role_id" < "public"."roles"."id"
 
-Ref "fk_4_users_user_source_id_fk":"public"."users"."user_source_id" < "user_sources"."id"
+Ref "fk_4_users_user_source_id_fk":"public"."users"."user_source_id" > "user_sources"."id"
 
-Ref "fk_5_roles_user_source_id_fk":"public"."roles"."user_source_id" < "user_sources"."id"
+Ref "fk_5_roles_user_source_id_fk":"public"."roles"."user_source_id" > "user_sources"."id"
